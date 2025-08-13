@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package userservice;
+
+option go_package = "userservice/";
+
+service UserService {
+  rpc GetUserData(GetUserDataRequest) returns (GetUserDataResponse);
+  rpc DeleteUserData(DeleteUserDataRequest) returns (DeleteUserDataResponse);
+}
+
+message DeleteUserDataRequest{
+  string user_id = 1;
+}
+
+message DeleteUserDataResponse{ 
+      bool success = 1;
+}
+
+message GetUserDataRequest{
+  string user_id = 1;
+}
+
+message GetUserDataResponse{
+  string first_name = 1;
+  string last_name = 2;
+  string email = 3;
+  string avatar_url = 4;
+}

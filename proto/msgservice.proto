@@ -1,0 +1,171 @@
+syntax = "proto3";
+
+package msgservice;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "msgservice/";
+
+service MsgService {
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  rpc EditMessage(EditMessageRequest) returns (EditMessageResponse);
+
+  rpc GetAttachment(GetAttachmentRequest) returns (GetAttachmentResponse);
+  rpc DeleteAttachments(DeleteAttachmentsRequest) returns (DeleteAttachmentsResponse);
+
+  rpc CreateConversation(CreateConversationRequest) returns (CreateConversationResponse);
+  rpc GetConversation(GetConversationRequest) returns (GetConversationResponse);
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc AddParticipant(AddParticipantRequest) returns (AddParticipantResponse);
+  rpc DeleteParticipant(DeleteParticipantRequest) returns (DeleteParticipantResponse);
+}
+
+message GetAttachmentRequest {
+  string attachment_id = 1;
+}
+
+message GetAttachmentResponse {
+  string file_name = 1;
+  string file_type = 2;
+  int64 file_size = 3;
+  string file_url = 4;
+}
+
+message AddParticipantResponse { 
+    bool success = 1;
+}
+
+message AddParticipantRequest {
+  string user_id = 1;
+  string conversation_id = 2;
+}
+
+message DeleteParticipantRequest {
+  string user_id = 1;
+  string conversation_id = 2;
+}
+
+message DeleteParticipantResponse {
+    bool success = 1;
+}
+
+message ListConversationsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  google.protobuf.Timestamp after_timestamp = 3;
+  google.protobuf.Timestamp before_timestamp = 4;
+  bool reversed_order = 5;
+}
+
+message ListConversationsResponse {
+  message Conversation {
+    string conversation_id = 1;
+    string name = 2;
+    string creator_id = 3;
+    google.protobuf.Timestamp created_date = 4;
+    repeated string participant_ids = 5;
+  }
+  int32 next_offset = 1;
+  repeated Conversation conversations = 2;
+}
+
+message GetConversationRequest {
+  string conversation_id = 1;
+}
+
+message GetConversationResponse {
+  string name = 1;
+  string creator_id = 2;
+  google.protobuf.Timestamp created_date = 3;
+  repeated string participant_ids = 4;
+}
+
+message CreateConversationRequest {
+  string name = 1;
+  string creator_id = 2;
+  repeated string participant_ids = 3;
+}
+
+message CreateConversationResponse {
+  string conversation_id = 1;
+  google.protobuf.Timestamp created_date = 2;
+}
+
+message DeleteAttachmentsRequest {
+  repeated string attachment_id = 1;
+}
+
+message DeleteAttachmentsResponse {}
+
+message EditMessageRequest {
+  string message_id = 1;
+  string message_body = 2;
+}
+
+message EditMessageResponse {}
+
+message DeleteMessageRequest {
+  string message_id = 1;
+}
+
+message DeleteMessageResponse {}
+
+message ListMessagesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  google.protobuf.Timestamp after_timestamp = 3;
+  google.protobuf.Timestamp before_timestamp = 4;
+  bool reversed_order = 5;
+}
+
+message ListMessagesResponse {
+  message Message {
+    string message_id = 1;
+    string conversation_id = 2;
+    string sender_id = 3;
+    string message_body = 4;
+    bool edited = 5;
+    google.protobuf.Timestamp sent_at = 6;
+    repeated Attachment attachments = 7;
+  }
+
+  int32 next_offset = 1;
+  repeated Message messages = 2;
+}
+
+message SendMessageResponse {
+  string message_id = 1;
+  google.protobuf.Timestamp sent_at = 2;
+}
+
+message SendMessageRequest {
+  string conversation_id = 1;
+  string sender_id = 2;
+  string message_body = 3;
+  repeated Attachment attachments = 4;
+}
+
+message GetMessageRequest {
+  string message_id = 1;
+}
+
+message GetMessageResponse {
+  string message_id = 1;
+  string conversation_id = 2;
+  string sender_id = 3;
+  string message_body = 4;
+  bool updated = 5;
+  google.protobuf.Timestamp sent_at = 6;
+  repeated Attachment attachments = 7;
+}
+
+message Attachment {
+  string attachment_id = 1;
+  string file_name = 2;
+  string file_type = 3;
+  int64 file_size = 4;
+  string file_url = 5;
+}
