@@ -19,6 +19,7 @@ func main() {
 	slog.Info("config loaded succesfully", "server config", *cfg, "postgres config", *pgcfg)
 	setLogger()
 	slog.Info("logger settled up")
+	// TODO: connect to database
 }
 
 func setLogger() error {
