@@ -8,28 +8,44 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users(
-    username, password
+    username, password_hash
 ) VALUES(
     $1,$2
 )
-RETURNING user_id
+RETURNING user_id,registered_at
 `
 
 type CreateUserParams struct {
-	Username string
-	Password string
+	Username     string
+	PasswordHash string
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (pgtype.UUID, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Password)
-	var user_id pgtype.UUID
-	err := row.Scan(&user_id)
-	return user_id, err
+type CreateUserRow struct {
+	UserID       uuid.UUID
+	RegisteredAt pgtype.Timestamp
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
+	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.PasswordHash)
+	var i CreateUserRow
+	err := row.Scan(&i.UserID, &i.RegisteredAt)
+	return i, err
+}
+
+const deleteExpiredTokens = `-- name: DeleteExpiredTokens :exec
+DELETE FROM refresh_tokens
+WHERE expires_at < now()
+`
+
+func (q *Queries) DeleteExpiredTokens(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteExpiredTokens)
+	return err
 }
 
 const deleteUserByID = `-- name: DeleteUserByID :exec
@@ -37,50 +53,157 @@ DELETE FROM users
 WHERE user_id = $1
 `
 
-func (q *Queries) DeleteUserByID(ctx context.Context, userID pgtype.UUID) error {
+func (q *Queries) DeleteUserByID(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteUserByID, userID)
 	return err
 }
 
+const getRefreshTokenByHash = `-- name: GetRefreshTokenByHash :one
+SELECT token_id, user_id, token_hash, issued_at, expires_at
+FROM refresh_tokens
+WHERE token_hash = $1
+`
+
+type GetRefreshTokenByHashRow struct {
+	TokenID   uuid.UUID
+	UserID    uuid.UUID
+	TokenHash string
+	IssuedAt  pgtype.Timestamp
+	ExpiresAt pgtype.Timestamp
+}
+
+func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (GetRefreshTokenByHashRow, error) {
+	row := q.db.QueryRow(ctx, getRefreshTokenByHash, tokenHash)
+	var i GetRefreshTokenByHashRow
+	err := row.Scan(
+		&i.TokenID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.IssuedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
-SELECT username 
+SELECT user_id, username, registered_at
 FROM users 
 WHERE user_id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, userID pgtype.UUID) (string, error) {
+type GetUserByIDRow struct {
+	UserID       uuid.UUID
+	Username     string
+	RegisteredAt pgtype.Timestamp
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, userID uuid.UUID) (GetUserByIDRow, error) {
 	row := q.db.QueryRow(ctx, getUserByID, userID)
-	var username string
-	err := row.Scan(&username)
-	return username, err
+	var i GetUserByIDRow
+	err := row.Scan(&i.UserID, &i.Username, &i.RegisteredAt)
+	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT user_id 
+SELECT user_id, username, registered_at
 FROM users 
 WHERE username = $1
 `
 
-func (q *Queries) GetUserByUsername(ctx context.Context, username string) (pgtype.UUID, error) {
-	row := q.db.QueryRow(ctx, getUserByUsername, username)
-	var user_id pgtype.UUID
-	err := row.Scan(&user_id)
-	return user_id, err
+type GetUserByUsernameRow struct {
+	UserID       uuid.UUID
+	Username     string
+	RegisteredAt pgtype.Timestamp
 }
 
-const updatePassword = `-- name: UpdatePassword :exec
-UPDATE users
-    set password = $2
-WHERE user_id = $1
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error) {
+	row := q.db.QueryRow(ctx, getUserByUsername, username)
+	var i GetUserByUsernameRow
+	err := row.Scan(&i.UserID, &i.Username, &i.RegisteredAt)
+	return i, err
+}
+
+const insertRefreshToken = `-- name: InsertRefreshToken :one
+INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_info, ip_address)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING token_id, issued_at, expires_at
 `
 
-type UpdatePasswordParams struct {
-	UserID   pgtype.UUID
-	Password string
+type InsertRefreshTokenParams struct {
+	UserID     uuid.UUID
+	TokenHash  string
+	ExpiresAt  pgtype.Timestamp
+	DeviceInfo pgtype.Text
+	IpAddress  pgtype.Text
 }
 
-func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
-	_, err := q.db.Exec(ctx, updatePassword, arg.UserID, arg.Password)
+type InsertRefreshTokenRow struct {
+	TokenID   uuid.UUID
+	IssuedAt  pgtype.Timestamp
+	ExpiresAt pgtype.Timestamp
+}
+
+func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) (InsertRefreshTokenRow, error) {
+	row := q.db.QueryRow(ctx, insertRefreshToken,
+		arg.UserID,
+		arg.TokenHash,
+		arg.ExpiresAt,
+		arg.DeviceInfo,
+		arg.IpAddress,
+	)
+	var i InsertRefreshTokenRow
+	err := row.Scan(&i.TokenID, &i.IssuedAt, &i.ExpiresAt)
+	return i, err
+}
+
+const listUserTokens = `-- name: ListUserTokens :many
+SELECT token_id, issued_at, expires_at, device_info, ip_address
+FROM refresh_tokens
+WHERE user_id = $1
+ORDER BY issued_at DESC
+`
+
+type ListUserTokensRow struct {
+	TokenID    uuid.UUID
+	IssuedAt   pgtype.Timestamp
+	ExpiresAt  pgtype.Timestamp
+	DeviceInfo pgtype.Text
+	IpAddress  pgtype.Text
+}
+
+func (q *Queries) ListUserTokens(ctx context.Context, userID uuid.UUID) ([]ListUserTokensRow, error) {
+	rows, err := q.db.Query(ctx, listUserTokens, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserTokensRow
+	for rows.Next() {
+		var i ListUserTokensRow
+		if err := rows.Scan(
+			&i.TokenID,
+			&i.IssuedAt,
+			&i.ExpiresAt,
+			&i.DeviceInfo,
+			&i.IpAddress,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const revokeRefreshToken = `-- name: RevokeRefreshToken :exec
+DELETE from refresh_tokens
+WHERE token_id = $1
+`
+
+func (q *Queries) RevokeRefreshToken(ctx context.Context, tokenID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, revokeRefreshToken, tokenID)
 	return err
 }
 
@@ -91,11 +214,27 @@ WHERE user_id = $1
 `
 
 type UpdateUserNameParams struct {
-	UserID   pgtype.UUID
+	UserID   uuid.UUID
 	Username string
 }
 
 func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) error {
 	_, err := q.db.Exec(ctx, updateUserName, arg.UserID, arg.Username)
+	return err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users
+    set password_hash = $2
+WHERE user_id = $1
+`
+
+type UpdateUserPasswordParams struct {
+	UserID       uuid.UUID
+	PasswordHash string
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.Exec(ctx, updateUserPassword, arg.UserID, arg.PasswordHash)
 	return err
 }

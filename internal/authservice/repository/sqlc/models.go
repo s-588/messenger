@@ -5,12 +5,23 @@
 package postgres
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type RefreshToken struct {
+	TokenID    uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  string
+	IssuedAt   pgtype.Timestamp
+	ExpiresAt  pgtype.Timestamp
+	DeviceInfo pgtype.Text
+	IpAddress  pgtype.Text
+}
+
 type User struct {
-	UserID       pgtype.UUID
+	UserID       uuid.UUID
 	Username     string
-	Password     string
+	PasswordHash string
 	RegisteredAt pgtype.Timestamp
 }
