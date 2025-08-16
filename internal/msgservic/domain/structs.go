@@ -6,19 +6,19 @@ import (
 	"github.com/google/uuid"
 )
 
-type Conversations struct {
+type Conversation struct {
 	conversation_id uuid.UUID
 	name            string
 	creation_date   time.Time
 }
 
-type participants struct {
+type Participant struct {
 	participant_id  uuid.UUID
 	conversation_id uuid.UUID
 	user_id         uuid.UUID
 }
 
-type messages struct {
+type Message struct {
 	message_id      uuid.UUID
 	conversation_id uuid.UUID
 	sender_id       uuid.UUID
@@ -26,7 +26,7 @@ type messages struct {
 	message_body    string
 }
 
-type attachments struct {
+type Attachment struct {
 	attachment_id uuid.UUID
 	message_id    uuid.UUID
 	file_name     string

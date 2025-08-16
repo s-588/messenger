@@ -15,11 +15,11 @@ type User struct {
 }
 
 type RefreshToken struct {
-	TokenID     uuid.UUID
-	UserID      string
-	TokenHash   string
-	IssuedAt    time.Time
-	ExpiresAt   time.Time
-	device_info string
-	ip_address  net.IP
+	TokenID    uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  string
+	IssuedAt   time.Time
+	ExpiresAt  time.Time
+	DeviceInfo string
+	IPAddress  net.IP
 }
