@@ -4,7 +4,7 @@ FROM users
 WHERE user_id = $1;
 
 -- name: GetUserByUsername :one
-SELECT user_id, username, registered_at
+SELECT user_id, username,password_hash, registered_at
 FROM users 
 WHERE username = $1;
 
@@ -33,10 +33,10 @@ WHERE user_id = $1;
 -- name: InsertRefreshToken :one
 INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_info, ip_address)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING token_id, issued_at, expires_at;
+RETURNING token_id, user_id, token_hash, issued_at, expires_at, device_info, ip_address ;
 
 -- name: GetRefreshTokenByHash :one
-SELECT token_id, user_id, token_hash, issued_at, expires_at
+SELECT token_id, user_id, token_hash, issued_at, expires_at, device_info, ip_address
 FROM refresh_tokens
 WHERE token_hash = $1;
 
@@ -49,7 +49,7 @@ DELETE FROM refresh_tokens
 WHERE expires_at < now();
 
 -- name: ListUserTokens :many
-SELECT token_id, issued_at, expires_at, device_info, ip_address
+SELECT token_id, user_id, token_hash, issued_at, expires_at, device_info, ip_address
 FROM refresh_tokens
 WHERE user_id = $1
 ORDER BY issued_at DESC;
