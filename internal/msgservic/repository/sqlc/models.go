@@ -5,12 +5,13 @@
 package postgres
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Attachment struct {
-	AttachmentID pgtype.UUID
-	MessageID    pgtype.UUID
+	AttachmentID uuid.UUID
+	MessageID    uuid.UUID
 	FileName     pgtype.Text
 	FileType     pgtype.Text
 	FileSize     pgtype.Int4
@@ -18,21 +19,21 @@ type Attachment struct {
 }
 
 type Conversation struct {
-	ConversationID pgtype.UUID
+	ConversationID uuid.UUID
 	Name           string
 	CreationDate   pgtype.Timestamp
 }
 
 type Message struct {
-	MessageID      pgtype.UUID
-	ConversationID pgtype.UUID
-	SenderID       pgtype.UUID
+	MessageID      uuid.UUID
+	ConversationID uuid.UUID
+	SenderID       uuid.UUID
 	SentAt         pgtype.Timestamp
 	MessageBody    pgtype.Text
 }
 
 type Participant struct {
-	ParticipantID  pgtype.UUID
-	ConversationID pgtype.UUID
-	UserID         pgtype.UUID
+	ParticipantID  uuid.UUID
+	ConversationID uuid.UUID
+	UserID         uuid.UUID
 }

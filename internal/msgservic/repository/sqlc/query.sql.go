@@ -8,6 +8,7 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -20,7 +21,7 @@ INSERT INTO attachments(
 `
 
 type CreateAttachmentParams struct {
-	MessageID pgtype.UUID
+	MessageID uuid.UUID
 	FileName  pgtype.Text
 	FileType  pgtype.Text
 	FileSize  pgtype.Int4
@@ -71,8 +72,8 @@ INSERT INTO messages(
 `
 
 type CreateMessageParams struct {
-	ConversationID pgtype.UUID
-	SenderID       pgtype.UUID
+	ConversationID uuid.UUID
+	SenderID       uuid.UUID
 	MessageBody    pgtype.Text
 }
 
@@ -98,8 +99,8 @@ INSERT INTO participants(
 `
 
 type CreateParticipantParams struct {
-	ConversationID pgtype.UUID
-	UserID         pgtype.UUID
+	ConversationID uuid.UUID
+	UserID         uuid.UUID
 }
 
 func (q *Queries) CreateParticipant(ctx context.Context, arg CreateParticipantParams) (Participant, error) {
@@ -114,7 +115,7 @@ DELETE FROM attachments
 WHERE attachment_id = $1
 `
 
-func (q *Queries) DeleteAttachmentByID(ctx context.Context, attachmentID pgtype.UUID) error {
+func (q *Queries) DeleteAttachmentByID(ctx context.Context, attachmentID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteAttachmentByID, attachmentID)
 	return err
 }
@@ -124,7 +125,7 @@ DELETE FROM attachments
 WHERE message_id = $1
 `
 
-func (q *Queries) DeleteAttachmentByMessageID(ctx context.Context, messageID pgtype.UUID) error {
+func (q *Queries) DeleteAttachmentByMessageID(ctx context.Context, messageID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteAttachmentByMessageID, messageID)
 	return err
 }
@@ -134,7 +135,7 @@ DELETE FROM conversations
 WHERE conversation_id = $1
 `
 
-func (q *Queries) DeleteConversation(ctx context.Context, conversationID pgtype.UUID) error {
+func (q *Queries) DeleteConversation(ctx context.Context, conversationID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteConversation, conversationID)
 	return err
 }
@@ -144,7 +145,7 @@ DELETE FROM messages
 WHERE message_id = $1
 `
 
-func (q *Queries) DeleteMessageByID(ctx context.Context, messageID pgtype.UUID) error {
+func (q *Queries) DeleteMessageByID(ctx context.Context, messageID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteMessageByID, messageID)
 	return err
 }
@@ -154,7 +155,7 @@ DELETE FROM messages
 WHERE sender_id = $1
 `
 
-func (q *Queries) DeleteMessagesBySenderID(ctx context.Context, senderID pgtype.UUID) error {
+func (q *Queries) DeleteMessagesBySenderID(ctx context.Context, senderID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteMessagesBySenderID, senderID)
 	return err
 }
@@ -164,7 +165,7 @@ DELETE FROM participants
 WHERE conversation_id = $1
 `
 
-func (q *Queries) DeleteParticipantByConversationID(ctx context.Context, conversationID pgtype.UUID) error {
+func (q *Queries) DeleteParticipantByConversationID(ctx context.Context, conversationID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteParticipantByConversationID, conversationID)
 	return err
 }
@@ -174,7 +175,7 @@ DELETE FROM participants
 WHERE participant_id = $1
 `
 
-func (q *Queries) DeleteParticipantByID(ctx context.Context, participantID pgtype.UUID) error {
+func (q *Queries) DeleteParticipantByID(ctx context.Context, participantID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteParticipantByID, participantID)
 	return err
 }
@@ -184,7 +185,7 @@ DELETE FROM participants
 WHERE user_id = $1
 `
 
-func (q *Queries) DeleteParticipantByUserID(ctx context.Context, userID pgtype.UUID) error {
+func (q *Queries) DeleteParticipantByUserID(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteParticipantByUserID, userID)
 	return err
 }
@@ -204,9 +205,9 @@ type FindMessagesByMessageBodyParams struct {
 }
 
 type FindMessagesByMessageBodyRow struct {
-	MessageID      pgtype.UUID
-	ConversationID pgtype.UUID
-	SenderID       pgtype.UUID
+	MessageID      uuid.UUID
+	ConversationID uuid.UUID
+	SenderID       uuid.UUID
 	MessageBody    pgtype.Text
 }
 
@@ -244,14 +245,14 @@ LIMIT $2 OFFSET $3
 `
 
 type GetAllMessagesByConversationIDParams struct {
-	ConversationID pgtype.UUID
+	ConversationID uuid.UUID
 	Limit          int32
 	Offset         int32
 }
 
 type GetAllMessagesByConversationIDRow struct {
-	MessageID      pgtype.UUID
-	ConversationID pgtype.UUID
+	MessageID      uuid.UUID
+	ConversationID uuid.UUID
 	MessageBody    pgtype.Text
 }
 
@@ -284,14 +285,14 @@ LIMIT $2 OFFSET $3
 `
 
 type GetAllMessagesBySenderIDParams struct {
-	SenderID pgtype.UUID
+	SenderID uuid.UUID
 	Limit    int32
 	Offset   int32
 }
 
 type GetAllMessagesBySenderIDRow struct {
-	MessageID      pgtype.UUID
-	ConversationID pgtype.UUID
+	MessageID      uuid.UUID
+	ConversationID uuid.UUID
 	MessageBody    pgtype.Text
 }
 
@@ -322,11 +323,11 @@ WHERE conversation_id = $1
 `
 
 type GetAllParticipantsByConversationIDRow struct {
-	ParticipantID pgtype.UUID
-	UserID        pgtype.UUID
+	ParticipantID uuid.UUID
+	UserID        uuid.UUID
 }
 
-func (q *Queries) GetAllParticipantsByConversationID(ctx context.Context, conversationID pgtype.UUID) ([]GetAllParticipantsByConversationIDRow, error) {
+func (q *Queries) GetAllParticipantsByConversationID(ctx context.Context, conversationID uuid.UUID) ([]GetAllParticipantsByConversationIDRow, error) {
 	rows, err := q.db.Query(ctx, getAllParticipantsByConversationID, conversationID)
 	if err != nil {
 		return nil, err
@@ -353,11 +354,11 @@ WHERE user_id = $1
 `
 
 type GetAllParticipantsByUserIDRow struct {
-	ParticipantID  pgtype.UUID
-	ConversationID pgtype.UUID
+	ParticipantID  uuid.UUID
+	ConversationID uuid.UUID
 }
 
-func (q *Queries) GetAllParticipantsByUserID(ctx context.Context, userID pgtype.UUID) ([]GetAllParticipantsByUserIDRow, error) {
+func (q *Queries) GetAllParticipantsByUserID(ctx context.Context, userID uuid.UUID) ([]GetAllParticipantsByUserIDRow, error) {
 	rows, err := q.db.Query(ctx, getAllParticipantsByUserID, userID)
 	if err != nil {
 		return nil, err
@@ -384,14 +385,14 @@ WHERE attachment_id = $1
 `
 
 type GetAttachmentByIDRow struct {
-	MessageID pgtype.UUID
+	MessageID uuid.UUID
 	FileName  pgtype.Text
 	FileType  pgtype.Text
 	FileSize  pgtype.Int4
 	FileUrl   pgtype.Text
 }
 
-func (q *Queries) GetAttachmentByID(ctx context.Context, attachmentID pgtype.UUID) (GetAttachmentByIDRow, error) {
+func (q *Queries) GetAttachmentByID(ctx context.Context, attachmentID uuid.UUID) (GetAttachmentByIDRow, error) {
 	row := q.db.QueryRow(ctx, getAttachmentByID, attachmentID)
 	var i GetAttachmentByIDRow
 	err := row.Scan(
@@ -411,14 +412,14 @@ WHERE message_id = $1
 `
 
 type GetAttachmentByMessageIDRow struct {
-	AttachmentID pgtype.UUID
+	AttachmentID uuid.UUID
 	FileName     pgtype.Text
 	FileType     pgtype.Text
 	FileSize     pgtype.Int4
 	FileUrl      pgtype.Text
 }
 
-func (q *Queries) GetAttachmentByMessageID(ctx context.Context, messageID pgtype.UUID) (GetAttachmentByMessageIDRow, error) {
+func (q *Queries) GetAttachmentByMessageID(ctx context.Context, messageID uuid.UUID) (GetAttachmentByMessageIDRow, error) {
 	row := q.db.QueryRow(ctx, getAttachmentByMessageID, messageID)
 	var i GetAttachmentByMessageIDRow
 	err := row.Scan(
@@ -442,7 +443,7 @@ type GetConversationsByIDRow struct {
 	CreationDate pgtype.Timestamp
 }
 
-func (q *Queries) GetConversationsByID(ctx context.Context, conversationID pgtype.UUID) (GetConversationsByIDRow, error) {
+func (q *Queries) GetConversationsByID(ctx context.Context, conversationID uuid.UUID) (GetConversationsByIDRow, error) {
 	row := q.db.QueryRow(ctx, getConversationsByID, conversationID)
 	var i GetConversationsByIDRow
 	err := row.Scan(&i.Name, &i.CreationDate)
@@ -456,12 +457,12 @@ WHERE message_id = $1
 `
 
 type GetMessageByIDRow struct {
-	ConversationID pgtype.UUID
-	SenderID       pgtype.UUID
+	ConversationID uuid.UUID
+	SenderID       uuid.UUID
 	MessageBody    pgtype.Text
 }
 
-func (q *Queries) GetMessageByID(ctx context.Context, messageID pgtype.UUID) (GetMessageByIDRow, error) {
+func (q *Queries) GetMessageByID(ctx context.Context, messageID uuid.UUID) (GetMessageByIDRow, error) {
 	row := q.db.QueryRow(ctx, getMessageByID, messageID)
 	var i GetMessageByIDRow
 	err := row.Scan(&i.ConversationID, &i.SenderID, &i.MessageBody)
@@ -475,11 +476,11 @@ WHERE participant_id = $1
 `
 
 type GetParticipantByIDRow struct {
-	ConversationID pgtype.UUID
-	UserID         pgtype.UUID
+	ConversationID uuid.UUID
+	UserID         uuid.UUID
 }
 
-func (q *Queries) GetParticipantByID(ctx context.Context, participantID pgtype.UUID) (GetParticipantByIDRow, error) {
+func (q *Queries) GetParticipantByID(ctx context.Context, participantID uuid.UUID) (GetParticipantByIDRow, error) {
 	row := q.db.QueryRow(ctx, getParticipantByID, participantID)
 	var i GetParticipantByIDRow
 	err := row.Scan(&i.ConversationID, &i.UserID)
@@ -519,7 +520,7 @@ WHERE conversation_id = $1
 `
 
 type UpdateConversationNameParams struct {
-	ConversationID pgtype.UUID
+	ConversationID uuid.UUID
 	Name           string
 }
 
@@ -535,7 +536,7 @@ WHERE message_id = $1
 `
 
 type UpdateMessageBodyParams struct {
-	MessageID   pgtype.UUID
+	MessageID   uuid.UUID
 	MessageBody pgtype.Text
 }
 

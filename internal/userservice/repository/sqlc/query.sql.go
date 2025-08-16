@@ -8,11 +8,12 @@ package postgres
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createUser = `-- name: CreateUser :one
-INSERT INTO users(
+const createUserData = `-- name: CreateUserData :one
+INSERT INTO usersData(
     user_id, first_name, last_name, email, avatar_url
 ) VALUES(
     $1,$2,$3,$4,$5
@@ -20,23 +21,23 @@ INSERT INTO users(
 RETURNING user_id, first_name, last_name, email, avatar_url
 `
 
-type CreateUserParams struct {
-	UserID    pgtype.UUID
+type CreateUserDataParams struct {
+	UserID    uuid.UUID
 	FirstName string
 	LastName  pgtype.Text
 	Email     pgtype.Text
 	AvatarUrl pgtype.Text
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser,
+func (q *Queries) CreateUserData(ctx context.Context, arg CreateUserDataParams) (Usersdatum, error) {
+	row := q.db.QueryRow(ctx, createUserData,
 		arg.UserID,
 		arg.FirstName,
 		arg.LastName,
 		arg.Email,
 		arg.AvatarUrl,
 	)
-	var i User
+	var i Usersdatum
 	err := row.Scan(
 		&i.UserID,
 		&i.FirstName,
@@ -47,32 +48,32 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const deleteUserByID = `-- name: DeleteUserByID :exec
-DELETE FROM users
+const deleteUserDataByID = `-- name: DeleteUserDataByID :exec
+DELETE FROM usersData
 WHERE user_id = $1
 `
 
-func (q *Queries) DeleteUserByID(ctx context.Context, userID pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteUserByID, userID)
+func (q *Queries) DeleteUserDataByID(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUserDataByID, userID)
 	return err
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
+const getUserDataByEmail = `-- name: GetUserDataByEmail :one
 SELECT user_id, first_name , last_name , avatar_url
-FROM users 
+FROM usersData 
 WHERE email = $1
 `
 
-type GetUserByEmailRow struct {
-	UserID    pgtype.UUID
+type GetUserDataByEmailRow struct {
+	UserID    uuid.UUID
 	FirstName string
 	LastName  pgtype.Text
 	AvatarUrl pgtype.Text
 }
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email pgtype.Text) (GetUserByEmailRow, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
-	var i GetUserByEmailRow
+func (q *Queries) GetUserDataByEmail(ctx context.Context, email pgtype.Text) (GetUserDataByEmailRow, error) {
+	row := q.db.QueryRow(ctx, getUserDataByEmail, email)
+	var i GetUserDataByEmailRow
 	err := row.Scan(
 		&i.UserID,
 		&i.FirstName,
@@ -82,22 +83,22 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email pgtype.Text) (GetUse
 	return i, err
 }
 
-const getUserByID = `-- name: GetUserByID :one
+const getUserDataByID = `-- name: GetUserDataByID :one
 SELECT first_name , last_name , email , avatar_url
-FROM users 
+FROM usersData 
 WHERE user_id = $1
 `
 
-type GetUserByIDRow struct {
+type GetUserDataByIDRow struct {
 	FirstName string
 	LastName  pgtype.Text
 	Email     pgtype.Text
 	AvatarUrl pgtype.Text
 }
 
-func (q *Queries) GetUserByID(ctx context.Context, userID pgtype.UUID) (GetUserByIDRow, error) {
-	row := q.db.QueryRow(ctx, getUserByID, userID)
-	var i GetUserByIDRow
+func (q *Queries) GetUserDataByID(ctx context.Context, userID uuid.UUID) (GetUserDataByIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserDataByID, userID)
+	var i GetUserDataByIDRow
 	err := row.Scan(
 		&i.FirstName,
 		&i.LastName,
@@ -108,13 +109,13 @@ func (q *Queries) GetUserByID(ctx context.Context, userID pgtype.UUID) (GetUserB
 }
 
 const updateUserAvatar = `-- name: UpdateUserAvatar :exec
-UPDATE users
+UPDATE usersData
     set avatar_url = $2
 WHERE user_id = $1
 `
 
 type UpdateUserAvatarParams struct {
-	UserID    pgtype.UUID
+	UserID    uuid.UUID
 	AvatarUrl pgtype.Text
 }
 
@@ -124,13 +125,13 @@ func (q *Queries) UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarPara
 }
 
 const updateUserEmail = `-- name: UpdateUserEmail :exec
-UPDATE users
+UPDATE usersData
     set email = $2
 WHERE user_id = $1
 `
 
 type UpdateUserEmailParams struct {
-	UserID pgtype.UUID
+	UserID uuid.UUID
 	Email  pgtype.Text
 }
 
@@ -140,14 +141,14 @@ func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams
 }
 
 const updateUserFullName = `-- name: UpdateUserFullName :exec
-UPDATE users
+UPDATE usersData
     set first_name = $2,
         last_name = $3
 WHERE user_id = $1
 `
 
 type UpdateUserFullNameParams struct {
-	UserID    pgtype.UUID
+	UserID    uuid.UUID
 	FirstName string
 	LastName  pgtype.Text
 }

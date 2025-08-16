@@ -5,11 +5,12 @@
 package postgres
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type User struct {
-	UserID    pgtype.UUID
+type Usersdatum struct {
+	UserID    uuid.UUID
 	FirstName string
 	LastName  pgtype.Text
 	Email     pgtype.Text

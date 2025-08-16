@@ -59,28 +59,22 @@ func (q *Queries) DeleteUserByID(ctx context.Context, userID uuid.UUID) error {
 }
 
 const getRefreshTokenByHash = `-- name: GetRefreshTokenByHash :one
-SELECT token_id, user_id, token_hash, issued_at, expires_at
+SELECT token_id, user_id, token_hash, issued_at, expires_at, device_info, ip_address
 FROM refresh_tokens
 WHERE token_hash = $1
 `
 
-type GetRefreshTokenByHashRow struct {
-	TokenID   uuid.UUID
-	UserID    uuid.UUID
-	TokenHash string
-	IssuedAt  pgtype.Timestamp
-	ExpiresAt pgtype.Timestamp
-}
-
-func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (GetRefreshTokenByHashRow, error) {
+func (q *Queries) GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error) {
 	row := q.db.QueryRow(ctx, getRefreshTokenByHash, tokenHash)
-	var i GetRefreshTokenByHashRow
+	var i RefreshToken
 	err := row.Scan(
 		&i.TokenID,
 		&i.UserID,
 		&i.TokenHash,
 		&i.IssuedAt,
 		&i.ExpiresAt,
+		&i.DeviceInfo,
+		&i.IpAddress,
 	)
 	return i, err
 }
@@ -105,28 +99,27 @@ func (q *Queries) GetUserByID(ctx context.Context, userID uuid.UUID) (GetUserByI
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT user_id, username, registered_at
+SELECT user_id, username,password_hash, registered_at
 FROM users 
 WHERE username = $1
 `
 
-type GetUserByUsernameRow struct {
-	UserID       uuid.UUID
-	Username     string
-	RegisteredAt pgtype.Timestamp
-}
-
-func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error) {
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByUsername, username)
-	var i GetUserByUsernameRow
-	err := row.Scan(&i.UserID, &i.Username, &i.RegisteredAt)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.PasswordHash,
+		&i.RegisteredAt,
+	)
 	return i, err
 }
 
 const insertRefreshToken = `-- name: InsertRefreshToken :one
 INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_info, ip_address)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING token_id, issued_at, expires_at
+RETURNING token_id, user_id, token_hash, issued_at, expires_at, device_info, ip_address
 `
 
 type InsertRefreshTokenParams struct {
@@ -137,13 +130,7 @@ type InsertRefreshTokenParams struct {
 	IpAddress  pgtype.Text
 }
 
-type InsertRefreshTokenRow struct {
-	TokenID   uuid.UUID
-	IssuedAt  pgtype.Timestamp
-	ExpiresAt pgtype.Timestamp
-}
-
-func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) (InsertRefreshTokenRow, error) {
+func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) (RefreshToken, error) {
 	row := q.db.QueryRow(ctx, insertRefreshToken,
 		arg.UserID,
 		arg.TokenHash,
@@ -151,37 +138,39 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 		arg.DeviceInfo,
 		arg.IpAddress,
 	)
-	var i InsertRefreshTokenRow
-	err := row.Scan(&i.TokenID, &i.IssuedAt, &i.ExpiresAt)
+	var i RefreshToken
+	err := row.Scan(
+		&i.TokenID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.IssuedAt,
+		&i.ExpiresAt,
+		&i.DeviceInfo,
+		&i.IpAddress,
+	)
 	return i, err
 }
 
 const listUserTokens = `-- name: ListUserTokens :many
-SELECT token_id, issued_at, expires_at, device_info, ip_address
+SELECT token_id, user_id, token_hash, issued_at, expires_at, device_info, ip_address
 FROM refresh_tokens
 WHERE user_id = $1
 ORDER BY issued_at DESC
 `
 
-type ListUserTokensRow struct {
-	TokenID    uuid.UUID
-	IssuedAt   pgtype.Timestamp
-	ExpiresAt  pgtype.Timestamp
-	DeviceInfo pgtype.Text
-	IpAddress  pgtype.Text
-}
-
-func (q *Queries) ListUserTokens(ctx context.Context, userID uuid.UUID) ([]ListUserTokensRow, error) {
+func (q *Queries) ListUserTokens(ctx context.Context, userID uuid.UUID) ([]RefreshToken, error) {
 	rows, err := q.db.Query(ctx, listUserTokens, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListUserTokensRow
+	var items []RefreshToken
 	for rows.Next() {
-		var i ListUserTokensRow
+		var i RefreshToken
 		if err := rows.Scan(
 			&i.TokenID,
+			&i.UserID,
+			&i.TokenHash,
 			&i.IssuedAt,
 			&i.ExpiresAt,
 			&i.DeviceInfo,
